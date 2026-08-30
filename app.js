@@ -8,6 +8,19 @@ let currentGoal = 100;
 let isPlayingMusic = false;
 let SPOTIFY_TOKEN = null;
 
+// Récupère automatiquement le token Spotify depuis l'URL après connexion OAuth
+const hash = window.location.hash.substring(1).split('&').reduce((initial, item) => {
+  if (item) {
+    var parts = item.split('=');
+    initial[parts[0]] = decodeURIComponent(parts[1]);
+  }
+  return initial;
+}, {});
+
+if (hash.access_token) {
+  SPOTIFY_TOKEN = hash.access_token;
+  window.location.hash = ''; // Nettoie l'URL
+}
 // --- 1. INITIALISATION DE LA CONFIGURATION (VERCEL) ---
 async function initConfig() {
   try {
