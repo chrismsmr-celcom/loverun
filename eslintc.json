@@ -1,0 +1,45 @@
+{
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "parser": "espree",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-arrow-callback": "warn",
+    "eqeqeq": ["error", "always"],
+    "no-implicit-coercion": "error",
+    "no-floating-decimal": "error",
+    "semi": ["error", "always"],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "comma-dangle": ["error", "only-multiline"],
+    "space-before-function-paren": ["error", "never"],
+    "keyword-spacing": "error",
+    "no-multi-spaces": "error",
+    "no-trailing-spaces": "error",
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "max-len": ["warn", { "code": 100, "ignorePattern": "^import |^export " }],
+    "complexity": ["warn", 10],
+    "no-empty": ["error", { "allowEmptyCatch": true }]
+  },
+  "overrides": [
+    {
+      "files": ["pages/api/**/*.js"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
