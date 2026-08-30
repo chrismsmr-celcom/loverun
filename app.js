@@ -526,8 +526,12 @@ class SpotifyPlayer {
   }
 
   init() {
-    if (!this.state.spotifyToken) return;
+    if (!this.state.spotifyToken) {
+      log('info', 'Token Spotify absent, initialisation du player ignorée.');
+      return;
+    }
 
+    // 1. Définir le callback global AVANT tout
     window.onSpotifyWebPlaybackSDKReady = () => {
       if (!window.Spotify) return;
 
@@ -540,6 +544,11 @@ class SpotifyPlayer {
       this.state.spotifyPlayer.addListener('player_state_changed', state => this.handleStateChange(state));
       this.state.spotifyPlayer.connect();
     };
+
+    // 2. SÉCURITÉ : Si le script SDK est déjà chargé par le navigateur avant l'exécution de ce code
+    if (window.Spotify) {
+      window.onSpotifyWebPlaybackSDKReady();
+    }
   }
 
   handleStateChange(state) {
