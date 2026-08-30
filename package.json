@@ -12,7 +12,7 @@
   "author": "Chris Msmr",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "echo 'No build step required for static HTML/JS'",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx --ignore-path .gitignore",
     "lint:fix": "eslint . --ext .js,.jsx --fix --ignore-path .gitignore",
