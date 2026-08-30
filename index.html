@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LoveRun</title>
+  
+  <!-- iOS Web App Metadata -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="LoveRun">
+
+  <!-- Mapbox GL JS -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Spotify Web Playback SDK -->
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: #f4f4f5; color: #09090b; height: 100vh; overflow: hidden; }
+
+    #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
+
+    /* Header Flottant Light */
+    .header {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 10; width: 92%; max-width: 440px;
+      background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 99px;
+      padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.05rem; color: #09090b; }
+    .heart-icon { color: #ef4444; animation: heartbeat 1.2s infinite ease-in-out; }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* Spotify Widget Mini */
+    .spotify-widget {
+      display: flex; align-items: center; gap: 8px;
+      background: #18181b; color: #fff; padding: 4px 10px 4px 6px;
+      border-radius: 99px; font-size: 0.75rem;
+    }
+    .spotify-cover {
+      width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+      background: #27272a; flex-shrink: 0;
+    }
+    .equalizer {
+      display: flex; align-items: flex-end; gap: 2px; height: 12px; width: 12px;
+    }
+    .eq-bar {
+      width: 2px; background: #1db954; border-radius: 1px; height: 100%;
+    }
+    .eq-active .eq-bar:nth-child(1) { animation: eq 0.6s infinite alternate; }
+    .eq-active .eq-bar:nth-child(2) { animation: eq 0.8s infinite alternate 0.2s; }
+    .eq-active .eq-bar:nth-child(3) { animation: eq 0.5s infinite alternate 0.4s; }
+
+    @keyframes eq {
+      0% { height: 20%; }
+      100% { height: 100%; }
+    }
+
+    .sp-btn {
+      background: none; border: none; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; padding: 2px;
+    }
+
+    /* Bottom Sheet Light */
+    .bottom-sheet {
+      position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      z-index: 10; width: 100%; max-width: 480px;
+      background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      border-top-left-radius: 32px; border-top-right-radius: 32px;
+      padding: 24px; display: flex; flex-direction: column; gap: 16px;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.08);
+    }
+    .sheet-handle {
+      width: 40px; height: 4px; background: rgba(0, 0, 0, 0.15);
+      border-radius: 2px; align-self: center; margin-bottom: -4px;
+    }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card {
+      background: #f4f4f5; border-radius: 20px; padding: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .stat-card p { font-size: 0.75rem; color: #71717a; font-weight: 700; text-transform: uppercase; }
+    .stat-card h2 { font-size: 1.8rem; font-weight: 800; margin-top: 4px; color: #09090b; }
+
+    /* Goal Card */
+    .goal-card {
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .goal-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #991b1b; }
+    .progress-bar-bg { width: 100%; height: 8px; background: #fee2e2; border-radius: 99px; overflow: hidden; }
+    .progress-bar-fill { width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease; }
+
+    /* Buttons */
+    .controls { display: flex; gap: 12px; }
+    .btn {
+      flex: 1; padding: 16px; border-radius: 16px; border: none; font-weight: 700;
+      font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 8px; transition: all 0.2s ease;
+    }
+    .btn-primary { background: #10b981; color: #fff; }
+    .btn-secondary { background: #f4f4f5; color: #09090b; border: 1px solid rgba(0,0,0,0.1); }
+    .btn-share { background: #3b82f6; color: #fff; }
+
+    /* Marker GPS */
+    .user-marker {
+      width: 20px; height: 20px; background-color: #10b981; border: 3px solid #fff;
+      border-radius: 50%; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+      animation: pulse-ring 1.8s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Modal Carte de Partage */
+    .share-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+      z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .card-to-share {
+      position: relative; width: 100%; max-width: 360px; background: #fff; border-radius: 28px; padding: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 14px;
+      text-align: center; border: 2px solid #f4f4f5;
+    }
+    .close-btn {
+      position: absolute; top: 16px; right: 16px; background: #f4f4f5; border: none;
+      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; z-index: 10; color: #71717a;
+    }
+    .card-quote { font-size: 0.95rem; font-weight: 800; color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 14px; }
+    #shareMap { width: 100%; height: 180px; border-radius: 18px; overflow: hidden; position: relative; }
+  </style>
+</head>
+<body>
+
+  <!-- Header Flottant avec Widget Spotify Integré -->
+  <header class="header">
+    <div class="brand">
+      <i data-lucide="heart" class="heart-icon"></i>
+      <span>LoveRun</span>
+    </div>
+
+    <!-- Lecteur Spotify -->
+    <div class="spotify-widget">
+      <img id="spCover" class="spotify-cover" src="https://via.placeholder.com/28" alt="Cover">
+      <div id="eqAnim" class="equalizer">
+        <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+      </div>
+      <button id="spPlayBtn" class="sp-btn"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
+      <button id="spNextBtn" class="sp-btn"><i data-lucide="skip-forward" style="width: 14px; height: 14px;"></i></button>
+    </div>
+  </header>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Bottom Sheet -->
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <p>Temps</p>
+        <h2 id="timer">00:00</h2>
+      </div>
+      <div class="stat-card">
+        <p>Distance</p>
+        <h2 id="distance">0.00 <span style="font-size: 0.9rem; font-weight: 400;">km</span></h2>
+      </div>
+    </div>
+
+    <div class="goal-card">
+      <div class="goal-header">
+        <span>Objectif : <strong id="goalText">100m</strong></span>
+        <i data-lucide="heart" class="heart-icon" style="width: 16px; height: 16px;"></i>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressFill" class="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="btn btn-primary">
+        <i data-lucide="play"></i> Démarrer
+      </button>
+      <button id="shareBtn" class="btn btn-share" style="display: none;">
+        <i data-lucide="share-2"></i> Carte & Coach IA
+      </button>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="share-modal">
+    <div id="captureCard" class="card-to-share">
+      <button id="closeModalBtn" class="close-btn"><i data-lucide="x"></i></button>
+      
+      <div class="brand" style="justify-content: center; margin-top: 4px;">
+        <i data-lucide="heart" class="heart-icon"></i>
+        <span>LoveRun</span>
+      </div>
+
+      <div id="shareMap"></div>
+      <div id="randomQuote" class="card-quote">Chargement du débriefing IA...</div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><p>Temps</p><h2 id="cardTimer">00:00</h2></div>
+        <div class="stat-card"><p>Distance</p><h2 id="cardDist">0.00 km</h2></div>
+      </div>
+
+      <button id="downloadBtn" class="btn btn-primary">
+        <i data-lucide="download"></i> Télécharger l'image
+      </button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
