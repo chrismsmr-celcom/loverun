@@ -6,19 +6,19 @@ let userMarker = null;
 let isRunning = false;
 let currentGoal = 100;
 let isPlayingMusic = false;
+let SPOTIFY_TOKEN = null;
 
-// --- INITIALISATION DYNAMIQUE DE LA CONFIG (VERCEL ENV) ---
+// --- 1. INITIALISATION DE LA CONFIGURATION (VERCEL) ---
 async function initConfig() {
   try {
     const res = await fetch('/api/config');
     const config = await res.json();
 
-    // Configuration des SDK avec les clés de Vercel
     mapboxgl.accessToken = config.mapboxToken;
     supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
 
-    // Initialisation de la carte après chargement des clés
     initMap();
+    initCurrentLocation();
   } catch (err) {
     console.error("Erreur de chargement de la configuration Vercel:", err);
   }
@@ -28,13 +28,10 @@ function initMap() {
   map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [15.3131, -4.3276],
+    center: [2.3522, 48.8566], // Paris par défaut
     zoom: 15,
     preserveDrawingBuffer: true
   });
-
-  const markerEl = document.createElement('div');
-  markerEl.className = 'user-marker';
 
   map.on('load', () => {
     map.addSource('route', {
@@ -52,13 +49,31 @@ function initMap() {
   });
 }
 
-// Lancer le chargement au démarrage
-initConfig();
-lucide.createIcons();
+// Affiche la position initiale même avant de démarrer la course
+function initCurrentLocation() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const { latitude, longitude } = pos.coords;
+      const initialPos = [longitude, latitude];
+
+      if (!userMarker) {
+        const el = document.createElement('div');
+        el.className = 'user-marker';
+        userMarker = new mapboxgl.Marker({ element: el }).setLngLat(initialPos).addTo(map);
+      } else {
+        userMarker.setLngLat(initialPos);
+      }
+      map.flyTo({ center: initialPos, zoom: 16 });
+    }, (err) => console.warn("Géolocalisation initiale non autorisée", err), { enableHighAccuracy: true });
+  }
+}
 
 // --- 2. SPOTIFY WEB PLAYBACK SDK ---
 window.onSpotifyWebPlaybackSDKReady = () => {
-  if (!SPOTIFY_TOKEN) return;
+  if (typeof SPOTIFY_TOKEN === 'undefined' || !SPOTIFY_TOKEN) {
+    console.warn("Spotify SDK prêt, mais aucun SPOTIFY_TOKEN n'a été fourni.");
+    return;
+  }
 
   spotifyPlayer = new Spotify.Player({
     name: 'LoveRun Player',
@@ -71,7 +86,6 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     const track = state.track_window.current_track;
     isPlayingMusic = !state.paused;
 
-    // Mise à jour pochette & animation égaliseur
     document.getElementById('spCover').src = track.album.images[0].url;
     const eq = document.getElementById('eqAnim');
     const playBtn = document.getElementById('spPlayBtn');
@@ -97,7 +111,7 @@ document.getElementById('spNextBtn').addEventListener('click', () => {
   if (spotifyPlayer) spotifyPlayer.nextTrack();
 });
 
-// --- 3. GEOLOCATION & RUNNING ---
+// --- 3. GÉOLOCALISATION ET COURSE ---
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -129,7 +143,6 @@ async function toggleRun() {
   if (!isRunning) {
     isRunning = true;
     
-    // Activer Screen WakeLock pour iOS
     if ('wakeLock' in navigator) {
       try { await navigator.wakeLock.request('screen'); } catch (e) {}
     }
@@ -154,7 +167,9 @@ async function toggleRun() {
         const newCoord = [longitude, latitude];
 
         if (!userMarker) {
-          userMarker = new mapboxgl.Marker(markerEl).setLngLat(newCoord).addTo(map);
+          const el = document.createElement('div');
+          el.className = 'user-marker';
+          userMarker = new mapboxgl.Marker({ element: el }).setLngLat(newCoord).addTo(map);
         } else {
           userMarker.setLngLat(newCoord);
         }
@@ -187,7 +202,7 @@ async function toggleRun() {
   }
 }
 
-// --- 4. SAUVEGARDE SUPABASE & ANALYSE DEEPSEEK ---
+// --- 4. MODAL & DEEPSEEK & SUPABASE ---
 document.getElementById('shareBtn').addEventListener('click', async () => {
   const timeStr = document.getElementById('timer').innerText;
   const distNum = parseFloat(totalDistance.toFixed(2));
@@ -196,7 +211,6 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
   document.getElementById('cardDist').innerText = `${distNum} km`;
   document.getElementById('shareModal').style.display = 'flex';
 
-  // Rendu Carte Miniature
   if (!shareMap) {
     shareMap = new mapboxgl.Map({
       container: 'shareMap',
@@ -219,14 +233,15 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
       fitShareMapBounds();
     });
   } else {
-    shareMap.getSource('share-route').setData({
-      'type': 'Feature',
-      'geometry': { 'type': 'LineString', 'coordinates': coordinates }
-    });
+    if (shareMap.getSource('share-route')) {
+      shareMap.getSource('share-route').setData({
+        'type': 'Feature',
+        'geometry': { 'type': 'LineString', 'coordinates': coordinates }
+      });
+    }
     fitShareMapBounds();
   }
 
-  // Appel à DeepSeek Proxy (IA Coach)
   let aiText = "Session validée ! 🔥";
   try {
     const res = await fetch('/api/coach', {
@@ -242,15 +257,16 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
 
   document.getElementById('randomQuote').innerText = aiText;
 
-  // Sauvegarde PostgreSQL dans Supabase
-  await supabaseClient.from('runs').insert([
-    {
-      duration: timeStr,
-      distance_km: distNum,
-      coordinates: coordinates,
-      ai_feedback: aiText
-    }
-  ]);
+  if (supabaseClient) {
+    await supabaseClient.from('runs').insert([
+      {
+        duration: timeStr,
+        distance_km: distNum,
+        coordinates: coordinates,
+        ai_feedback: aiText
+      }
+    ]);
+  }
 });
 
 function fitShareMapBounds() {
@@ -277,3 +293,7 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 });
 
 document.getElementById('startBtn').addEventListener('click', toggleRun);
+
+// Démarrer l'app
+initConfig();
+lucide.createIcons();
