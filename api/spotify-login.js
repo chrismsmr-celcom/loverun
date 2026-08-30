@@ -1,8 +1,15 @@
 export default function handler(req, res) {
-  const client_id = process.env.SPOTIFY_CLIENT_ID;
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+
+  if (!clientId) {
+    return res.status(500).json({ 
+      error: "SPOTIFY_CLIENT_ID manquant dans les variables d'environnement Vercel." 
+    });
+  }
+
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers.host;
-  const redirect_uri = `${protocol}://${host}/`;
+  const redirectUri = `${protocol}://${host}/`;
 
   const scope = [
     'streaming',
@@ -12,7 +19,11 @@ export default function handler(req, res) {
     'user-read-playback-state'
   ].join(' ');
 
-  const authUrl = `https://accounts.spotify.com/authorize?response_type=token&client_id=${client_id}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirect_uri)}`;
+  const authUrl = `https://accounts.spotify.com/authorize?` +
+    `response_type=token` +
+    `&client_id=${encodeURIComponent(clientId)}` +
+    `&scope=${encodeURIComponent(scope)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
   res.redirect(authUrl);
 }
