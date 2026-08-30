@@ -3,13 +3,12 @@ export default function handler(req, res) {
 
   if (!clientId) {
     return res.status(500).json({ 
-      error: "SPOTIFY_CLIENT_ID manquant dans les variables d'environnement Vercel." 
+      error: "SPOTIFY_CLIENT_ID manquant dans les variables Vercel." 
     });
   }
 
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host;
-  const redirectUri = `${protocol}://${host}/`;
+  // URL fixe nettoyée sans slash final ambigu
+  const redirectUri = "https://loverun-silk.vercel.app/";
 
   const scope = [
     'streaming',
@@ -21,7 +20,7 @@ export default function handler(req, res) {
 
   const authUrl = `https://accounts.spotify.com/authorize?` +
     `response_type=token` +
-    `&client_id=${encodeURIComponent(clientId)}` +
+    `&client_id=${encodeURIComponent(clientId.trim())}` +
     `&scope=${encodeURIComponent(scope)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
