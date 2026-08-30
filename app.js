@@ -4,35 +4,192 @@
  * Version: 2.0.0
  */
 
-import {
-  LOCATIONS,
-  MAP_STYLES,
-  MAP_COLORS,
-  GEO_CONFIG,
-  SPOTIFY_CONFIG,
-  SPOTIFY_STORAGE_KEY,
-  GOAL_CONFIG,
-  DOM_SELECTORS,
-  ERROR_MESSAGES,
-  API_ENDPOINTS,
-} from './utils/constants.js';
+// ============================================
+// CONSTANTES ET HELPERS INTEGRÉS (Browser Ready)
+// ============================================
 
-import {
-  calculateDistance,
-  formatTime,
-  formatDistance,
-  extractTokenFromHash,
-  cleanUrlHash,
-  querySelector,
-  addEventListenerSafe,
-  updateText,
-  updateStyle,
-  toggleVisibility,
-  toggleClass,
-  fetchWithRetry,
-  log,
-  checkBrowserFeature,
-} from './utils/helpers.js';
+const LOCATIONS = {
+  PARIS: { lng: 2.3522, lat: 48.8566, zoom: 13 },
+  DEFAULT_ZOOM: 15,
+  GEOLOCATION_ZOOM: 16
+};
+
+const MAP_STYLES = {
+  DEFAULT: 'mapbox://styles/mapbox/dark-v11'
+};
+
+const MAP_COLORS = {
+  ROUTE: '#ff2d55',
+  ROUTE_WIDTH: 5,
+  ROUTE_SHARE_WIDTH: 6
+};
+
+const GEO_CONFIG = {
+  WATCH_OPTIONS: {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  }
+};
+
+const SPOTIFY_CONFIG = {
+  PLAYER_NAME: 'LoveRun Player',
+  DEFAULT_VOLUME: 0.8
+};
+
+const SPOTIFY_STORAGE_KEY = 'spotify_access_token';
+
+const GOAL_CONFIG = {
+  INITIAL: 500,
+  INCREMENT: 500,
+  SUCCESS_MESSAGE: 'atteint ! 🎉',
+  SUCCESS_DISPLAY_MS: 3000
+};
+
+const DOM_SELECTORS = {
+  MAP: '#map',
+  SHARE_MAP: '#share-map',
+  TIMER: '#timer',
+  DISTANCE: '#distance-display',
+  PROGRESS_FILL: '#progress-fill',
+  GOAL_TEXT: '#goal-text',
+  START_BTN: '#start-btn',
+  SHARE_BTN: '#share-btn',
+  SPOTIFY_HEADER_WIDGET: '#spotify-widget',
+  SPOTIFY_MODAL: '#spotify-modal',
+  CLOSE_SPOTIFY_MODAL: '#close-spotify-modal',
+  SPOTIFY_LOGIN_BTN: '#spotify-login-btn',
+  SP_LOGIN_STATE: '#sp-login-state',
+  SP_PLAYER_STATE: '#sp-player-state',
+  SP_COVER: '#spotify-cover',
+  MODAL_SP_COVER: '#modal-spotify-cover',
+  TRACK_TITLE: '#track-title',
+  TRACK_ARTIST: '#track-artist',
+  EQ_ANIM: '#eq-animation',
+  MODAL_PLAY_BTN: '#sp-play-btn',
+  MODAL_NEXT_BTN: '#sp-next-btn',
+  MODAL_PREV_BTN: '#sp-prev-btn',
+  SHARE_MODAL: '#share-modal',
+  CLOSE_MODAL_BTN: '#close-modal-btn',
+  DOWNLOAD_BTN: '#download-card-btn',
+  CARD_TIMER: '#card-timer',
+  CARD_DIST: '#card-distance',
+  CAPTURE_CARD: '#capture-card',
+  RANDOM_QUOTE: '#ai-coach-quote'
+};
+
+const ERROR_MESSAGES = {
+  CONFIG_LOAD_FAILED: 'Impossible de charger la configuration API.',
+  GEO_NOT_SUPPORTED: 'La géolocalisation n\'est pas supportée par votre navigateur.',
+  GEO_PERMISSION_DENIED: 'Permission de géolocalisation refusée.',
+  DEEPSEEK_ERROR: 'Erreur lors de la génération du feedback IA.'
+};
+
+const API_ENDPOINTS = {
+  CONFIG: '/api/config',
+  SPOTIFY_LOGIN: '/api/spotify-login',
+  COACH: '/api/coach'
+};
+
+// --- Helpers ---
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Rayon de la Terre en km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function formatDistance(distKm) {
+  return distKm.toFixed(2);
+}
+
+function extractTokenFromHash() {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  return params.get('access_token');
+}
+
+function cleanUrlHash() {
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState('', document.title, window.location.pathname + window.location.search);
+  } else {
+    window.location.hash = '';
+  }
+}
+
+function querySelector(selector) {
+  return document.querySelector(selector);
+}
+
+function addEventListenerSafe(selector, event, handler) {
+  const el = querySelector(selector);
+  if (el) {
+    el.addEventListener(event, handler);
+  }
+}
+
+function updateText(selector, text) {
+  const el = querySelector(selector);
+  if (el) el.textContent = text;
+}
+
+function updateStyle(selector, styles) {
+  const el = querySelector(selector);
+  if (el) {
+    Object.assign(el.style, styles);
+  }
+}
+
+function toggleVisibility(selector, visible, displayStyle = 'block') {
+  const el = querySelector(selector);
+  if (el) {
+    el.style.display = visible ? displayStyle : 'none';
+  }
+}
+
+function toggleClass(selector, className, add) {
+  const el = querySelector(selector);
+  if (el) {
+    el.classList.toggle(className, add);
+  }
+}
+
+async function fetchWithRetry(url, options = {}, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+    } catch (err) {
+      if (i === retries - 1) throw err;
+    }
+  }
+}
+
+function log(level, message, detail = '') {
+  const timestamp = new Date().toISOString();
+  console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, detail);
+}
+
+function checkBrowserFeature(feature) {
+  switch (feature) {
+    case 'geolocation': return 'geolocation' in navigator;
+    case 'wakeLock': return 'wakeLock' in navigator;
+    case 'serviceWorker': return 'serviceWorker' in navigator;
+    default: return false;
+  }
+}
 
 // ============================================
 // STATE MANAGEMENT
@@ -89,10 +246,16 @@ class AppConfig {
       const response = await fetchWithRetry(API_ENDPOINTS.CONFIG);
       const config = await response.json();
 
-      mapboxgl.accessToken = config.mapboxToken;
-      const supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+      if (window.mapboxgl) {
+        window.mapboxgl.accessToken = config.mapboxToken;
+      }
+      
+      let supabaseClient = null;
+      if (window.supabase && config.supabaseUrl && config.supabaseKey) {
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseKey);
+      }
 
-      return { mapboxgl, supabaseClient };
+      return { mapboxgl: window.mapboxgl, supabaseClient };
     } catch (error) {
       log('error', ERROR_MESSAGES.CONFIG_LOAD_FAILED, error);
       throw error;
@@ -110,8 +273,13 @@ class MapManager {
   }
 
   initMainMap() {
-    this.state.map = new mapboxgl.Map({
-      container: DOM_SELECTORS.MAP.slice(1),
+    if (!window.mapboxgl) return;
+
+    const mapContainer = querySelector(DOM_SELECTORS.MAP);
+    if (!mapContainer) return;
+
+    this.state.map = new window.mapboxgl.Map({
+      container: mapContainer,
       style: MAP_STYLES.DEFAULT,
       center: [LOCATIONS.PARIS.lng, LOCATIONS.PARIS.lat],
       zoom: LOCATIONS.PARIS.zoom,
@@ -122,6 +290,8 @@ class MapManager {
   }
 
   setupMainMapLayers() {
+    if (!this.state.map) return;
+
     this.state.map.addSource('route', {
       type: 'geojson',
       data: {
@@ -149,10 +319,12 @@ class MapManager {
   }
 
   updateUserMarker(lng, lat) {
+    if (!this.state.map || !window.mapboxgl) return;
+
     if (!this.state.userMarker) {
       const el = document.createElement('div');
       el.className = 'user-marker';
-      this.state.userMarker = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(this.state.map);
+      this.state.userMarker = new window.mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(this.state.map);
     } else {
       this.state.userMarker.setLngLat([lng, lat]);
     }
@@ -165,9 +337,14 @@ class MapManager {
   }
 
   initShareMap(coordinates) {
+    if (!window.mapboxgl) return;
+
+    const shareContainer = querySelector(DOM_SELECTORS.SHARE_MAP);
+    if (!shareContainer) return;
+
     if (!this.state.shareMap) {
-      this.state.shareMap = new mapboxgl.Map({
-        container: DOM_SELECTORS.SHARE_MAP.slice(1),
+      this.state.shareMap = new window.mapboxgl.Map({
+        container: shareContainer,
         style: MAP_STYLES.DEFAULT,
         interactive: false,
         preserveDrawingBuffer: true,
@@ -202,8 +379,8 @@ class MapManager {
   }
 
   fitShareMapBounds(coordinates) {
-    if (coordinates.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
+    if (coordinates.length > 0 && window.mapboxgl && this.state.shareMap) {
+      const bounds = new window.mapboxgl.LngLatBounds();
       coordinates.forEach(coord => bounds.extend(coord));
       this.state.shareMap.fitBounds(bounds, { padding: 30, animate: false });
     }
@@ -307,10 +484,6 @@ class TimerManager {
     this.state.elapsedTime = 0;
     updateText(DOM_SELECTORS.TIMER, '00:00');
   }
-
-  getFormattedTime() {
-    return formatTime(this.state.elapsedTime);
-  }
 }
 
 // ============================================
@@ -355,14 +528,18 @@ class SpotifyPlayer {
   init() {
     if (!this.state.spotifyToken) return;
 
-    this.state.spotifyPlayer = new Spotify.Player({
-      name: SPOTIFY_CONFIG.PLAYER_NAME,
-      getOAuthToken: cb => cb(this.state.spotifyToken),
-      volume: SPOTIFY_CONFIG.DEFAULT_VOLUME,
-    });
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      if (!window.Spotify) return;
 
-    this.state.spotifyPlayer.addListener('player_state_changed', state => this.handleStateChange(state));
-    this.state.spotifyPlayer.connect();
+      this.state.spotifyPlayer = new window.Spotify.Player({
+        name: SPOTIFY_CONFIG.PLAYER_NAME,
+        getOAuthToken: cb => cb(this.state.spotifyToken),
+        volume: SPOTIFY_CONFIG.DEFAULT_VOLUME,
+      });
+
+      this.state.spotifyPlayer.addListener('player_state_changed', state => this.handleStateChange(state));
+      this.state.spotifyPlayer.connect();
+    };
   }
 
   handleStateChange(state) {
@@ -374,7 +551,8 @@ class SpotifyPlayer {
     const imgUrl = track.album.images[0]?.url;
     if (imgUrl) {
       updateStyle(DOM_SELECTORS.SP_COVER, { backgroundImage: `url(${imgUrl})` });
-      querySelector(DOM_SELECTORS.MODAL_SP_COVER).src = imgUrl;
+      const modalCover = querySelector(DOM_SELECTORS.MODAL_SP_COVER);
+      if (modalCover) modalCover.src = imgUrl;
     }
 
     updateText(DOM_SELECTORS.TRACK_TITLE, track.name);
@@ -382,13 +560,15 @@ class SpotifyPlayer {
 
     if (this.state.isPlayingMusic) {
       toggleClass(DOM_SELECTORS.EQ_ANIM, 'eq-active', true);
-      querySelector(DOM_SELECTORS.MODAL_PLAY_BTN).innerHTML = `<i data-lucide="pause"></i>`;
+      const playBtn = querySelector(DOM_SELECTORS.MODAL_PLAY_BTN);
+      if (playBtn) playBtn.innerHTML = `<i data-lucide="pause"></i>`;
     } else {
       toggleClass(DOM_SELECTORS.EQ_ANIM, 'eq-active', false);
-      querySelector(DOM_SELECTORS.MODAL_PLAY_BTN).innerHTML = `<i data-lucide="play"></i>`;
+      const playBtn = querySelector(DOM_SELECTORS.MODAL_PLAY_BTN);
+      if (playBtn) playBtn.innerHTML = `<i data-lucide="play"></i>`;
     }
 
-    lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
   }
 
   play() {
@@ -419,17 +599,12 @@ class UIController {
   }
 
   setupEventListeners() {
-    // Start/Pause button
     addEventListenerSafe(DOM_SELECTORS.START_BTN, 'click', () => this.toggleRun());
-
-    // Share button
     addEventListenerSafe(DOM_SELECTORS.SHARE_BTN, 'click', () => this.openShareModal());
 
-    // Spotify modal
     addEventListenerSafe(DOM_SELECTORS.SPOTIFY_HEADER_WIDGET, 'click', () => this.openSpotifyModal());
     addEventListenerSafe(DOM_SELECTORS.CLOSE_SPOTIFY_MODAL, 'click', () => this.closeSpotifyModal());
 
-    // Spotify controls
     addEventListenerSafe(DOM_SELECTORS.SPOTIFY_LOGIN_BTN, 'click', () => {
       window.location.href = API_ENDPOINTS.SPOTIFY_LOGIN;
     });
@@ -438,7 +613,6 @@ class UIController {
     addEventListenerSafe(DOM_SELECTORS.MODAL_NEXT_BTN, 'click', () => this.spotify.next());
     addEventListenerSafe(DOM_SELECTORS.MODAL_PREV_BTN, 'click', () => this.spotify.previous());
 
-    // Share modal
     addEventListenerSafe(DOM_SELECTORS.CLOSE_MODAL_BTN, 'click', () => this.closeShareModal());
     addEventListenerSafe(DOM_SELECTORS.DOWNLOAD_BTN, 'click', () => this.downloadImage());
   }
@@ -447,7 +621,6 @@ class UIController {
     if (!this.state.isRunning) {
       this.state.isRunning = true;
 
-      // Request wake lock
       if (checkBrowserFeature('wakeLock')) {
         try {
           await navigator.wakeLock.request('screen');
@@ -472,17 +645,21 @@ class UIController {
 
   updateRunningUI() {
     const startBtn = querySelector(DOM_SELECTORS.START_BTN);
-    startBtn.innerHTML = `<i data-lucide="pause"></i> Pause`;
-    startBtn.className = 'btn btn-secondary';
+    if (startBtn) {
+      startBtn.innerHTML = `<i data-lucide="pause"></i> Pause`;
+      startBtn.className = 'btn btn-secondary';
+    }
     toggleVisibility(DOM_SELECTORS.SHARE_BTN, true, 'flex');
-    lucide.createIcons();
+    if (window.lucide) window.lucide.createIcons();
   }
 
   updatePausedUI() {
     const startBtn = querySelector(DOM_SELECTORS.START_BTN);
-    startBtn.innerHTML = `<i data-lucide="play"></i> Reprendre`;
-    startBtn.className = 'btn btn-primary';
-    lucide.createIcons();
+    if (startBtn) {
+      startBtn.innerHTML = `<i data-lucide="play"></i> Reprendre`;
+      startBtn.className = 'btn btn-primary';
+    }
+    if (window.lucide) window.lucide.createIcons();
   }
 
   async openShareModal() {
@@ -497,14 +674,14 @@ class UIController {
 
     await this.generateCoachFeedback(distNum, timeStr);
 
-    // Save to Supabase
     if (this.state.supabaseClient) {
+      const quoteEl = querySelector(DOM_SELECTORS.RANDOM_QUOTE);
       await this.state.supabaseClient.from('runs').insert([
         {
           duration: timeStr,
           distance_km: distNum,
           coordinates: this.state.coordinates,
-          ai_feedback: querySelector(DOM_SELECTORS.RANDOM_QUOTE).innerText,
+          ai_feedback: quoteEl ? quoteEl.innerText : 'Run terminé !',
         },
       ]);
     }
@@ -548,7 +725,9 @@ class UIController {
   async downloadImage() {
     try {
       const card = querySelector(DOM_SELECTORS.CAPTURE_CARD);
-      const canvas = await html2canvas(card, { useCORS: true, allowTaint: true });
+      if (!card || !window.html2canvas) return;
+
+      const canvas = await window.html2canvas(card, { useCORS: true, allowTaint: true });
 
       const link = document.createElement('a');
       link.download = `loverun-${new Date().getTime()}.png`;
@@ -569,12 +748,10 @@ class UIController {
 class LoveRunApp {
   async init() {
     try {
-      // Load config
       const config = await AppConfig.load();
       const state = new LoveRunState();
       state.supabaseClient = config.supabaseClient;
 
-      // Initialize managers
       const mapManager = new MapManager(state);
       const geolocationManager = new GeolocationManager(state, mapManager);
       const timerManager = new TimerManager(state);
@@ -582,13 +759,11 @@ class LoveRunApp {
       const spotifyPlayer = new SpotifyPlayer(state);
       const uiController = new UIController(state, geolocationManager, timerManager, goalManager, mapManager, spotifyPlayer);
 
-      // Setup
       mapManager.initMainMap();
       geolocationManager.init();
       spotifyPlayer.init();
       uiController.setupEventListeners();
 
-      // Register service worker
       if (checkBrowserFeature('serviceWorker')) {
         try {
           await navigator.serviceWorker.register('/sw.js');
@@ -598,17 +773,19 @@ class LoveRunApp {
         }
       }
 
-      // Initialize icons
-      lucide.createIcons();
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
 
       log('info', 'LoveRun initialized successfully');
     } catch (error) {
       log('error', 'Initialization failed', error);
-      alert('Erreur lors du chargement de l\'application');
     }
   }
 }
 
-// Start the app
-const app = new LoveRunApp();
-app.init();
+// Démarrage de l'application une fois le DOM chargé
+document.addEventListener('DOMContentLoaded', () => {
+  const app = new LoveRunApp();
+  app.init();
+});
