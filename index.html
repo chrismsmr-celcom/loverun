@@ -4,29 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LoveRun</title>
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
   
-  <!-- iOS Web App Metadata -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="LoveRun">
 
-  <!-- Mapbox GL JS -->
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
-  
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
-  
-  <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Spotify Web Playback SDK -->
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
-  
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
 
   <style>
@@ -35,7 +25,6 @@
 
     #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
 
-    /* Header Flottant */
     .header {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
       z-index: 10; width: 92%; max-width: 440px;
@@ -52,11 +41,10 @@
       50% { transform: scale(1.2); }
     }
 
-    /* Widget Spotify */
     .spotify-widget {
       display: flex; align-items: center; gap: 8px;
       background: #18181b; color: #fff; padding: 4px 10px 4px 6px;
-      border-radius: 99px; font-size: 0.75rem;
+      border-radius: 99px; font-size: 0.75rem; cursor: pointer;
     }
     .spotify-cover {
       width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
@@ -68,17 +56,13 @@
     .eq-active .eq-bar:nth-child(2) { animation: eq 0.8s infinite alternate 0.2s; }
     .eq-active .eq-bar:nth-child(3) { animation: eq 0.5s infinite alternate 0.4s; }
 
-    @keyframes eq {
-      0% { height: 20%; }
-      100% { height: 100%; }
-    }
+    @keyframes eq { 0% { height: 20%; } 100% { height: 100%; } }
 
     .sp-btn {
       background: none; border: none; color: #fff; cursor: pointer;
       display: flex; align-items: center; justify-content: center; padding: 2px;
     }
 
-    /* Bottom Sheet */
     .bottom-sheet {
       position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
       z-index: 10; width: 100%; max-width: 480px;
@@ -94,23 +78,15 @@
     }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .stat-card {
-      background: #f4f4f5; border-radius: 20px; padding: 16px;
-      border: 1px solid rgba(0, 0, 0, 0.04);
-    }
+    .stat-card { background: #f4f4f5; border-radius: 20px; padding: 16px; border: 1px solid rgba(0, 0, 0, 0.04); }
     .stat-card p { font-size: 0.75rem; color: #71717a; font-weight: 700; text-transform: uppercase; }
     .stat-card h2 { font-size: 1.8rem; font-weight: 800; margin-top: 4px; color: #09090b; }
 
-    /* Goal Card */
-    .goal-card {
-      background: #fef2f2; border: 1px solid #fecaca;
-      border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
-    }
+    .goal-card { background: #fef2f2; border: 1px solid #fecaca; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
     .goal-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #991b1b; }
     .progress-bar-bg { width: 100%; height: 8px; background: #fee2e2; border-radius: 99px; overflow: hidden; }
     .progress-bar-fill { width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease; }
 
-    /* Buttons */
     .controls { display: flex; gap: 12px; }
     .btn {
       flex: 1; padding: 16px; border-radius: 16px; border: none; font-weight: 700;
@@ -120,16 +96,12 @@
     .btn-primary { background: #10b981; color: #fff; }
     .btn-secondary { background: #f4f4f5; color: #09090b; border: 1px solid rgba(0,0,0,0.1); }
     .btn-share { background: #3b82f6; color: #fff; }
+    .btn-spotify { background: #1db954; color: #fff; width: 100%; }
 
-    /* Fix du Marker GPS */
     .user-marker {
-      width: 22px; height: 22px;
-      background-color: #10b981;
-      border: 3px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
-      animation: pulse-ring 1.8s infinite;
-      cursor: pointer;
+      width: 22px; height: 22px; background-color: #10b981; border: 3px solid #ffffff;
+      border-radius: 50%; box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+      animation: pulse-ring 1.8s infinite; cursor: pointer;
     }
     @keyframes pulse-ring {
       0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -137,14 +109,14 @@
       100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
-    /* Modal Carte de Partage */
-    .share-modal {
+    /* Modals */
+    .modal {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
       z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
     }
-    .card-to-share {
-      position: relative; width: 100%; max-width: 360px; background: #fff; border-radius: 28px; padding: 20px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 14px;
+    .modal-card {
+      position: relative; width: 100%; max-width: 360px; background: #fff; border-radius: 28px; padding: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 16px;
       text-align: center; border: 2px solid #f4f4f5;
     }
     .close-btn {
@@ -154,44 +126,44 @@
     }
     .card-quote { font-size: 0.95rem; font-weight: 800; color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 14px; }
     #shareMap { width: 100%; height: 180px; border-radius: 18px; overflow: hidden; position: relative; }
+
+    /* Spotify Player Large dans le Modal */
+    .modal-sp-cover {
+      width: 140px; height: 140px; border-radius: 20px; margin: 0 auto; object-fit: cover;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); background: #18181b;
+    }
+    .modal-sp-controls { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 8px; }
+    .modal-sp-btn {
+      background: #f4f4f5; border: none; border-radius: 50%; width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; color: #09090b;
+    }
+    .modal-sp-btn-main { background: #1db954; color: #fff; width: 56px; height: 56px; }
   </style>
 </head>
 <body>
 
-  <!-- Header Flottant -->
   <header class="header">
     <div class="brand">
       <i data-lucide="heart" class="heart-icon"></i>
       <span>LoveRun</span>
     </div>
 
-    <!-- Lecteur Spotify -->
-    <div class="spotify-widget">
+    <div id="spotifyHeaderWidget" class="spotify-widget">
       <img id="spCover" class="spotify-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='12' cy='12' r='5'/></svg>" alt="Cover">
       <div id="eqAnim" class="equalizer">
         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
       </div>
-      <button id="spPlayBtn" class="sp-btn"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
-      <button id="spNextBtn" class="sp-btn"><i data-lucide="skip-forward" style="width: 14px; height: 14px;"></i></button>
+      <button id="spPlayBtn" class="sp-btn"><i data-lucide="music" style="width: 14px; height: 14px;"></i></button>
     </div>
   </header>
 
-  <!-- Map -->
   <div id="map"></div>
 
-  <!-- Bottom Sheet -->
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
-
     <div class="stats-grid">
-      <div class="stat-card">
-        <p>Temps</p>
-        <h2 id="timer">00:00</h2>
-      </div>
-      <div class="stat-card">
-        <p>Distance</p>
-        <h2 id="distance">0.00 <span style="font-size: 0.9rem; font-weight: 400;">km</span></h2>
-      </div>
+      <div class="stat-card"><p>Temps</p><h2 id="timer">00:00</h2></div>
+      <div class="stat-card"><p>Distance</p><h2 id="distance">0.00 <span style="font-size: 0.9rem; font-weight: 400;">km</span></h2></div>
     </div>
 
     <div class="goal-card">
@@ -199,42 +171,54 @@
         <span>Objectif : <strong id="goalText">100m</strong></span>
         <i data-lucide="heart" class="heart-icon" style="width: 16px; height: 16px;"></i>
       </div>
-      <div class="progress-bar-bg">
-        <div id="progressFill" class="progress-bar-fill"></div>
-      </div>
+      <div class="progress-bar-bg"><div id="progressFill" class="progress-bar-fill"></div></div>
     </div>
 
     <div class="controls">
-      <button id="startBtn" class="btn btn-primary">
-        <i data-lucide="play"></i> Démarrer
-      </button>
-      <button id="shareBtn" class="btn btn-share" style="display: none;">
-        <i data-lucide="share-2"></i> Carte & Coach IA
-      </button>
+      <button id="startBtn" class="btn btn-primary"><i data-lucide="play"></i> Démarrer</button>
+      <button id="shareBtn" class="btn btn-share" style="display: none;"><i data-lucide="share-2"></i> Carte & Coach IA</button>
     </div>
   </div>
 
-  <!-- Share Modal -->
-  <div id="shareModal" class="share-modal">
-    <div id="captureCard" class="card-to-share">
+  <div id="spotifyModal" class="modal">
+    <div class="modal-card">
+      <button id="closeSpotifyModal" class="close-btn"><i data-lucide="x"></i></button>
+
+      <div id="spLoginState">
+        <i data-lucide="music" style="width: 48px; height: 48px; color: #1db954; margin-bottom: 8px;"></i>
+        <h3 style="font-weight: 800; font-size: 1.2rem;">Lecteur Spotify</h3>
+        <p style="font-size: 0.85rem; color: #71717a; margin-bottom: 12px;">Connecte ton compte Spotify Premium pour contrôler ta musique directement dans LoveRun.</p>
+        <button id="spotifyLoginBtn" class="btn btn-spotify"><i data-lucide="log-in"></i> Se connecter à Spotify</button>
+      </div>
+
+      <div id="spPlayerState" style="display: none;">
+        <img id="modalSpCover" class="modal-sp-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='12' cy='12' r='5'/></svg>" alt="Cover">
+        <h3 id="trackTitle" style="font-weight: 800; font-size: 1.1rem; margin-top: 4px;">Titre de la piste</h3>
+        <p id="trackArtist" style="font-size: 0.85rem; color: #71717a; margin-top: -8px;">Artiste</p>
+
+        <div class="modal-sp-controls">
+          <button id="modalPrevBtn" class="modal-sp-btn"><i data-lucide="skip-back"></i></button>
+          <button id="modalPlayBtn" class="modal-sp-btn modal-sp-btn-main"><i data-lucide="play"></i></button>
+          <button id="modalNextBtn" class="modal-sp-btn"><i data-lucide="skip-forward"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="shareModal" class="modal">
+    <div id="captureCard" class="modal-card">
       <button id="closeModalBtn" class="close-btn"><i data-lucide="x"></i></button>
-      
       <div class="brand" style="justify-content: center; margin-top: 4px;">
         <i data-lucide="heart" class="heart-icon"></i>
         <span>LoveRun</span>
       </div>
-
       <div id="shareMap"></div>
       <div id="randomQuote" class="card-quote">Chargement du débriefing IA...</div>
-
       <div class="stats-grid">
         <div class="stat-card"><p>Temps</p><h2 id="cardTimer">00:00</h2></div>
         <div class="stat-card"><p>Distance</p><h2 id="cardDist">0.00 km</h2></div>
       </div>
-
-      <button id="downloadBtn" class="btn btn-primary">
-        <i data-lucide="download"></i> Télécharger l'image
-      </button>
+      <button id="downloadBtn" class="btn btn-primary"><i data-lucide="download"></i> Télécharger l'image</button>
     </div>
   </div>
 
