@@ -8,8 +8,8 @@ let currentGoal = 100;
 let isPlayingMusic = false;
 let SPOTIFY_TOKEN = null;
 
-// Récupère automatiquement le token Spotify depuis l'URL après connexion OAuth
-const hash = window.location.hash.substring(1).split('&').reduce((initial, item) => {
+// --- 1. CAPTURE AUTOMATIQUE DU TOKEN SPOTIFY (OAUTH) ---
+const hashParams = window.location.hash.substring(1).split('&').reduce((initial, item) => {
   if (item) {
     var parts = item.split('=');
     initial[parts[0]] = decodeURIComponent(parts[1]);
@@ -17,11 +17,12 @@ const hash = window.location.hash.substring(1).split('&').reduce((initial, item)
   return initial;
 }, {});
 
-if (hash.access_token) {
-  SPOTIFY_TOKEN = hash.access_token;
+if (hashParams.access_token) {
+  SPOTIFY_TOKEN = hashParams.access_token;
   window.location.hash = ''; // Nettoie l'URL
 }
-// --- 1. INITIALISATION DE LA CONFIGURATION (VERCEL) ---
+
+// --- 2. CONFIGURATION VERCEL ---
 async function initConfig() {
   try {
     const res = await fetch('/api/config');
@@ -41,7 +42,7 @@ function initMap() {
   map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/light-v11',
-    center: [2.3522, 48.8566], // Paris par défaut
+    center: [2.3522, 48.8566],
     zoom: 15,
     preserveDrawingBuffer: true
   });
@@ -62,7 +63,6 @@ function initMap() {
   });
 }
 
-// Affiche la position initiale même avant de démarrer la course
 function initCurrentLocation() {
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -81,12 +81,32 @@ function initCurrentLocation() {
   }
 }
 
-// --- 2. SPOTIFY WEB PLAYBACK SDK ---
-window.onSpotifyWebPlaybackSDKReady = () => {
-  if (typeof SPOTIFY_TOKEN === 'undefined' || !SPOTIFY_TOKEN) {
-    console.warn("Spotify SDK prêt, mais aucun SPOTIFY_TOKEN n'a été fourni.");
-    return;
+// --- 3. GESTION DU MODAL & SDK SPOTIFY ---
+const spotifyModal = document.getElementById('spotifyModal');
+const spLoginState = document.getElementById('spLoginState');
+const spPlayerState = document.getElementById('spPlayerState');
+
+document.getElementById('spotifyHeaderWidget').addEventListener('click', () => {
+  spotifyModal.style.display = 'flex';
+  if (SPOTIFY_TOKEN) {
+    spLoginState.style.display = 'none';
+    spPlayerState.style.display = 'block';
+  } else {
+    spLoginState.style.display = 'block';
+    spPlayerState.style.display = 'none';
   }
+});
+
+document.getElementById('closeSpotifyModal').addEventListener('click', () => {
+  spotifyModal.style.display = 'none';
+});
+
+document.getElementById('spotifyLoginBtn').addEventListener('click', () => {
+  window.location.href = '/api/spotify-login';
+});
+
+window.onSpotifyWebPlaybackSDKReady = () => {
+  if (!SPOTIFY_TOKEN) return;
 
   spotifyPlayer = new Spotify.Player({
     name: 'LoveRun Player',
@@ -99,16 +119,21 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     const track = state.track_window.current_track;
     isPlayingMusic = !state.paused;
 
-    document.getElementById('spCover').src = track.album.images[0].url;
+    const imgUrl = track.album.images[0].url;
+    document.getElementById('spCover').src = imgUrl;
+    document.getElementById('modalSpCover').src = imgUrl;
+    document.getElementById('trackTitle').innerText = track.name;
+    document.getElementById('trackArtist').innerText = track.artists.map(a => a.name).join(', ');
+
     const eq = document.getElementById('eqAnim');
-    const playBtn = document.getElementById('spPlayBtn');
+    const modalPlayBtn = document.getElementById('modalPlayBtn');
 
     if (isPlayingMusic) {
       eq.classList.add('eq-active');
-      playBtn.innerHTML = `<i data-lucide="pause" style="width: 14px; height: 14px;"></i>`;
+      modalPlayBtn.innerHTML = `<i data-lucide="pause"></i>`;
     } else {
       eq.classList.remove('eq-active');
-      playBtn.innerHTML = `<i data-lucide="play" style="width: 14px; height: 14px;"></i>`;
+      modalPlayBtn.innerHTML = `<i data-lucide="play"></i>`;
     }
     lucide.createIcons();
   });
@@ -116,15 +141,19 @@ window.onSpotifyWebPlaybackSDKReady = () => {
   spotifyPlayer.connect();
 };
 
-document.getElementById('spPlayBtn').addEventListener('click', () => {
+document.getElementById('modalPlayBtn').addEventListener('click', () => {
   if (spotifyPlayer) spotifyPlayer.togglePlay();
 });
 
-document.getElementById('spNextBtn').addEventListener('click', () => {
+document.getElementById('modalNextBtn').addEventListener('click', () => {
   if (spotifyPlayer) spotifyPlayer.nextTrack();
 });
 
-// --- 3. GÉOLOCALISATION ET COURSE ---
+document.getElementById('modalPrevBtn').addEventListener('click', () => {
+  if (spotifyPlayer) spotifyPlayer.previousTrack();
+});
+
+// --- 4. GÉOLOCALISATION & COURSE ---
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -215,7 +244,7 @@ async function toggleRun() {
   }
 }
 
-// --- 4. MODAL & DEEPSEEK & SUPABASE ---
+// --- 5. SHARE MODAL & DEEPSEEK & SUPABASE ---
 document.getElementById('shareBtn').addEventListener('click', async () => {
   const timeStr = document.getElementById('timer').innerText;
   const distNum = parseFloat(totalDistance.toFixed(2));
@@ -307,6 +336,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 
 document.getElementById('startBtn').addEventListener('click', toggleRun);
 
-// Démarrer l'app
+// Démarrer l'application
 initConfig();
 lucide.createIcons();
