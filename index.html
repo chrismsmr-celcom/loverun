@@ -13,14 +13,19 @@
   <!-- Mapbox GL JS -->
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
+  
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+  
   <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <!-- Spotify Web Playback SDK -->
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
 
@@ -30,7 +35,7 @@
 
     #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
 
-    /* Header Flottant Light */
+    /* Header Flottant */
     .header {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
       z-index: 10; width: 92%; max-width: 440px;
@@ -47,7 +52,7 @@
       50% { transform: scale(1.2); }
     }
 
-    /* Spotify Widget Mini */
+    /* Widget Spotify */
     .spotify-widget {
       display: flex; align-items: center; gap: 8px;
       background: #18181b; color: #fff; padding: 4px 10px 4px 6px;
@@ -57,12 +62,8 @@
       width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
       background: #27272a; flex-shrink: 0;
     }
-    .equalizer {
-      display: flex; align-items: flex-end; gap: 2px; height: 12px; width: 12px;
-    }
-    .eq-bar {
-      width: 2px; background: #1db954; border-radius: 1px; height: 100%;
-    }
+    .equalizer { display: flex; align-items: flex-end; gap: 2px; height: 12px; width: 12px; }
+    .eq-bar { width: 2px; background: #1db954; border-radius: 1px; height: 100%; }
     .eq-active .eq-bar:nth-child(1) { animation: eq 0.6s infinite alternate; }
     .eq-active .eq-bar:nth-child(2) { animation: eq 0.8s infinite alternate 0.2s; }
     .eq-active .eq-bar:nth-child(3) { animation: eq 0.5s infinite alternate 0.4s; }
@@ -77,7 +78,7 @@
       display: flex; align-items: center; justify-content: center; padding: 2px;
     }
 
-    /* Bottom Sheet Light */
+    /* Bottom Sheet */
     .bottom-sheet {
       position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
       z-index: 10; width: 100%; max-width: 480px;
@@ -120,11 +121,15 @@
     .btn-secondary { background: #f4f4f5; color: #09090b; border: 1px solid rgba(0,0,0,0.1); }
     .btn-share { background: #3b82f6; color: #fff; }
 
-    /* Marker GPS */
+    /* Fix du Marker GPS */
     .user-marker {
-      width: 20px; height: 20px; background-color: #10b981; border: 3px solid #fff;
-      border-radius: 50%; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+      width: 22px; height: 22px;
+      background-color: #10b981;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
       animation: pulse-ring 1.8s infinite;
+      cursor: pointer;
     }
     @keyframes pulse-ring {
       0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -153,7 +158,7 @@
 </head>
 <body>
 
-  <!-- Header Flottant avec Widget Spotify Integré -->
+  <!-- Header Flottant -->
   <header class="header">
     <div class="brand">
       <i data-lucide="heart" class="heart-icon"></i>
@@ -162,7 +167,7 @@
 
     <!-- Lecteur Spotify -->
     <div class="spotify-widget">
-      <img id="spCover" class="spotify-cover" src="https://via.placeholder.com/28" alt="Cover">
+      <img id="spCover" class="spotify-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='12' cy='12' r='5'/></svg>" alt="Cover">
       <div id="eqAnim" class="equalizer">
         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
       </div>
