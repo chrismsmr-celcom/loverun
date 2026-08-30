@@ -27,7 +27,7 @@ const MAP_COLORS = {
 const GEO_CONFIG = {
   WATCH_OPTIONS: {
     enableHighAccuracy: true,
-    timeout: 10000,
+    timeout: 20000, // ⬆️ Changé de 10000 à 20000 ms
     maximumAge: 0
   }
 };
